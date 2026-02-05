@@ -1,0 +1,15 @@
+[
+  {
+    "file": "/Users/mbn/Documents/GitHub/Algorithmic-Analysis-and-Optimization/Algoritmeanalyse-og-optimering/Algoritmeanalyse-og-optimering.cpp",
+    "arguments": [
+      "g++",
+      "-std=c++17",
+      "-o",
+      "Algoritmeanalyse-og-optimering",
+      "/Users/mbn/Documents/GitHub/Algorithmic-Analysis-and-Optimization/Algoritmeanalyse-og-optimering/Algoritmeanalyse-og-optimering.cpp",
+      "-I/Users/mbn/Documents/GitHub/Algorithmic-Analysis-and-Optimization/Algoritmeanalyse-og-optimering"
+    ],
+    "directory": "/Users/mbn/Documents/GitHub/Algorithmic-Analysis-and-Optimization",
+    "output": "Algoritmeanalyse-og-optimering"
+  }
+]

@@ -18,6 +18,7 @@
  /* ------------------------------- MAIN_CPP ----------------------------------- */
 
 #include "main.h"
+#include "raylib/raylib-5.5_win64_msvc16/include/raylib.h"
 
 #pragma comment(lib, "raylib.lib")
 #pragma comment(lib, "winmm.lib")
@@ -36,7 +37,7 @@ void ShowProgressGUI(BenchmarkProgress& progress) {
     const int windowWidth = 400;
     const int windowHeight = 300;
     const int margin = 20;
-    
+
     // Calculate window position (right side of screen)
     int posX = GetScreenWidth() - windowWidth - 20;
     int posY = 70; // Below the main header
@@ -59,15 +60,15 @@ void ShowProgressGUI(BenchmarkProgress& progress) {
         DrawText(TextFormat("Algorithm: %s", progress.currentAlgorithm.c_str()),
                 posX + margin, yPos, 16, DARKGRAY);
         yPos += 25;
-        
+
         DrawText(TextFormat("Case: %s", progress.currentCase.c_str()),
                 posX + margin, yPos, 16, DARKGRAY);
         yPos += 25;
-        
+
         DrawText(TextFormat("Size: %d", progress.currentSize),
                 posX + margin, yPos, 16, DARKGRAY);
         yPos += 25;
-        
+
         DrawText(TextFormat("Progress: %d/%d", progress.currentRun, progress.totalRuns),
                 posX + margin, yPos, 16, DARKGRAY);
         yPos += 25;
@@ -99,7 +100,7 @@ void ShowProgressGUI(BenchmarkProgress& progress) {
     }
 }
 
-void UpdateProgress(BenchmarkProgress& progress, const std::string& algorithm, 
+void UpdateProgress(BenchmarkProgress& progress, const std::string& algorithm,
                    const std::string& caseType, int size, int currentRun, int totalRuns) {
     progress.currentAlgorithm = algorithm;
     progress.currentCase = caseType;
@@ -150,7 +151,7 @@ void RunSortingBenchmarks(int num_runs, int initial_size, int size_increment) {
                 std::uniform_int_distribution<> distrib(0, size * 2);
                 std::generate(merge_data.begin(), merge_data.end(), [&]() { return distrib(gen); });
             }
-            
+
             // Copy data for quicksort before running merge sort
             quick_data = merge_data;
 
@@ -168,7 +169,7 @@ void RunSortingBenchmarks(int num_runs, int initial_size, int size_increment) {
                 std::string name = "Quick Sort (" + caseType + ", Size: " + std::to_string(size) + ")";
                 UpdateProgress(gProgress, "Quick Sort", caseType, size, ++currentOperation, totalOperations);
                 InstrumentationTimer timer(name.c_str(), caseType.c_str());
-                sorting::quick_sort(quick_data, 0, quick_data.size() - 1, 
+                sorting::quick_sort(quick_data, 0, quick_data.size() - 1,
                                   caseType == "Worst" ? sorting::PivotStrategy::LAST : sorting::PivotStrategy::RANDOM);
                 AddResult(gProgress, "Quick Sort - " + caseType + " - Size " + std::to_string(size));
             }
@@ -259,11 +260,11 @@ void RunVisualizer(std::string filePath) {
     // Configure window with anti-aliasing and VSync
     SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT);
     InitWindow(screenWidth, screenHeight, "Algorithm Performance Analyzer");
-    
+
     // Set window icon and initialization code
     Color darkBlue = { 0, 82, 172, 255 };  // RGB values for dark blue
     Color skyBlue = { 135, 206, 235, 255 }; // RGB values for sky blue
-    
+
     // Create a simple gradient icon
     Image icon = { 0 };
     icon.width = 32;
@@ -282,7 +283,7 @@ void RunVisualizer(std::string filePath) {
             (unsigned char)((1 - t) * darkBlue.b + t * skyBlue.b),
             255
         };
-        
+
         for (int x = 0; x < icon.width; x++) {
             int offset = (y * icon.width + x) * 4;
             pixels[offset] = color.r;
@@ -291,16 +292,16 @@ void RunVisualizer(std::string filePath) {
             pixels[offset + 3] = color.a;
         }
     }
-    
+
     SetWindowIcon(icon);
-    
+
     // More detailed runVisualizer
     std::vector<std::string> resultFiles = {"results_sorting.json", "results_searching.json"};
     int currentFileIndex = 0;
     std::vector<TraceEvent> traceEvents = parseJSON(resultFiles[currentFileIndex]);
-    
+
     SetTargetFPS(60);
-    
+
     while (!WindowShouldClose()) {
         // Handle visualization switching
         if (IsKeyPressed(KEY_S) || IsKeyPressed(KEY_1)) {
@@ -311,11 +312,15 @@ void RunVisualizer(std::string filePath) {
             currentFileIndex = 1; // Switch to searching view
             traceEvents = parseJSON(resultFiles[currentFileIndex]);
         }
-        
+
         // Toggle fullscreen with Alt+Enter or F11
-        if ((IsKeyPressed(KEY_ENTER) && (IsKeyDown(KEY_LEFT_ALT) || IsKeyDown(KEY_RIGHT_ALT))) || 
+        if ((IsKeyPressed(KEY_ENTER) && (IsKeyDown(KEY_LEFT_ALT) || IsKeyDown(KEY_RIGHT_ALT))) ||
             IsKeyPressed(KEY_F11)) {
             ToggleFullscreen();
+        }
+
+        if ((IsKeyPressed(KEY_ESCAPE))) {
+            break;
         }
 
         BeginDrawing();
@@ -324,7 +329,7 @@ void RunVisualizer(std::string filePath) {
         // Draw modern header bar with gradient
         DrawRectangleGradientH(0, 0, GetScreenWidth(), 50, GetColor(0x2C3E50FF), GetColor(0x3498DBFF));
         DrawText("Algorithm Performance Analyzer", 20, 15, 20, WHITE);
-        
+
         // Draw elegant controls help with icons
         const char* controls = "Controls:  [1,S] Sorting Analysis  |  [2,F] Searching Analysis  |  [F11] Fullscreen  |  [Esc] Exit";
         DrawText(controls, GetScreenWidth() - MeasureText(controls, 10) - 20, 20, 10, Fade(WHITE, 0.9f));
@@ -332,8 +337,8 @@ void RunVisualizer(std::string filePath) {
         // Draw current view indicator with more visibility
         const char* viewText = (currentFileIndex == 0) ? "SORTING ANALYSIS VIEW" : "SEARCHING ANALYSIS VIEW";
         int viewTextWidth = MeasureText(viewText, 20);
-        DrawRectangleGradientH(GetScreenWidth()/2 - viewTextWidth/2 - 10, 10, 
-                              viewTextWidth + 20, 30, 
+        DrawRectangleGradientH(GetScreenWidth()/2 - viewTextWidth/2 - 10, 10,
+                              viewTextWidth + 20, 30,
                               Fade(DARKBLUE, 0.3f), Fade(DARKBLUE, 0.1f));
         DrawText(viewText, GetScreenWidth()/2 - viewTextWidth/2, 15, 20, WHITE);
 
@@ -341,7 +346,7 @@ void RunVisualizer(std::string filePath) {
             plotData(traceEvents, GetScreenWidth(), GetScreenHeight(), resultFiles[currentFileIndex]);
         } else {
             // Enhanced error message display
-            DrawRectangleGradientV(0, GetScreenHeight()/2 - 50, GetScreenWidth(), 100, 
+            DrawRectangleGradientV(0, GetScreenHeight()/2 - 50, GetScreenWidth(), 100,
                                  Fade(RED, 0.1f), Fade(RED, 0.2f));
             const char* message = "No performance data available. Please run benchmarks first.";
             int textWidth = MeasureText(message, 24);
@@ -368,7 +373,7 @@ const int WARMUP_RUNS = 3;
 const int WARMUP_INITIAL_SIZE = 1000;
 const int WARMUP_SIZE_INCREMENT = 1000;
 
-const int BENCHMARK_RUNS = 50;       // Increased from 20 for more data points
+const int BENCHMARK_RUNS = 15;       // Increased from 20 for more data points
 const int INITIAL_SIZE = 1000;       // Reduced initial size for more granular data
 const int SIZE_INCREMENT = 2000;     // Smaller increments for more data points
 
