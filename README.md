@@ -12,7 +12,7 @@ This project focuses on algorithm optimization, analysis, and practical implemen
 - [Introduction](#introduction)
 - [Features](#features)
 - [Installation](#installation)
-- [macOS-Specific-installation] (#macos-installation)
+- [macOS-Specific-installation](#macos-installation)
 - [Usage](#usage)
   - [Running Benchmarks](#running-benchmarks)
   - [Visualizing Sorting Algorithms](#visualizing-sorting-algorithms)
