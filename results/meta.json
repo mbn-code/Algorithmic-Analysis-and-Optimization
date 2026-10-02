@@ -1,0 +1,8 @@
+{
+  "date": "2026-10-02",
+  "cpu": "AMD Ryzen 7 9800X3D 8-Core Processor",
+  "os": "windows",
+  "compiler": "gcc 15.2.0",
+  "mode": "full",
+  "caches": [{"level": "L1", "bytes": 49152}, {"level": "L2", "bytes": 1048576}, {"level": "L3", "bytes": 100663296}]
+}

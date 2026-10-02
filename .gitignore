@@ -1,111 +1,26 @@
-# Prerequisites
-*.d
+# Build trees
+/build*/
+/out/
+/cmake-build-*/
+compile_commands.json
+.cache/
 
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
+# Benchmark output that is not the committed reference run
+/quick-results/
+/my-results/
+*.trace.json
+aao_viewer.png
 
-# Precompiled Headers
-*.gch
-*.pch
+# Site assembled for GitHub Pages
+/_site/
+/web/data/
 
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
-*.exe
-*.out
-*.app
-
-# Custom ignore patterns
-# Ignore all files in the out directory
-out/
-
-# Ignore all files in the build directory
-build/
-
-# Ignore all files in the bin directory
-
-# Visual Studio files
-*.sln
-*.vcxproj
-*.vcxproj.filters
-*.pdb
-*.ilk
-*.idb
-*.ipch
-*.obj
-*.exe
-*.dll
-*.lib
-*.exp
-*.res
-*.aps
-*.pch
-*.sdf
-*.opensdf
-*.suo
-*.user
-*.ncb
-*.vspscc
-*.vssscc
-*.vshost.*
-*.psess
-*.vsmacros
-*.vspx
-*.vsix
-*.dotCover
-*.csproj.user
-*.bak
-*.cache
-*.log
-*.vscode
-*.vs
-
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-
-# Distribution / packaging
-.Python
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-*.egg
-*.egg-info/
-dist/
-build/
-*.pyc
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# PyCharm
-.idea/
-.shelf/
-workspace.xml
-httpRequests/
-dataSources/
-dataSources.local.xml
-
-# VS Code
+# Editors and operating systems
+.vs/
 .vscode/
-Vejledning til Studieområdeprojekt 2024.pdf
-Algoritmeanalyse-og-optimering/Algoritmeanalyse-og-optimering
+.idea/
+*.user
+*.swp
+.DS_Store
+Thumbs.db
+*.log

@@ -1,2 +1,12 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+* text=auto eol=lf
+
+*.png binary
+*.pdf binary
+*.mw  binary
+
+# Generated from results/ by tools/*.mjs; CI checks they are up to date.
+docs/assets/*.svg linguist-generated=true
+results/*         linguist-generated=true
+
+# The original 2024 school-project material.
+docs/sop/**       linguist-documentation=true
