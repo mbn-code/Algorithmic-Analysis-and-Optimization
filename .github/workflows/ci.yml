@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["**.md", "docs/sop/**"]
+  pull_request:
+    paths-ignore: ["**.md", "docs/sop/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cpp:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: Linux GCC, os: ubuntu-latest, cmake_args: -DCMAKE_CXX_COMPILER=g++ }
+          - { name: Linux Clang, os: ubuntu-latest, cmake_args: -DCMAKE_CXX_COMPILER=clang++ }
+          - { name: macOS Clang, os: macos-latest, cmake_args: "" }
+          - { name: Windows MSVC, os: windows-latest, cmake_args: "" }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release ${{ matrix.cmake_args }}
+      - name: Build
+        run: cmake --build build --config Release --parallel
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure
+      - name: Benchmark smoke run
+        shell: bash
+        run: |
+          bench=build/aao_bench
+          [ -f build/Release/aao_bench.exe ] && bench=build/Release/aao_bench.exe
+          "$bench" --quick --out quick-results
+
+  viewer:
+    name: Viewer (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DAAO_BUILD_VIEWER=ON -DAAO_BUILD_TESTS=OFF -DAAO_BUILD_BENCH=OFF
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+  web:
+    name: Visualizer and charts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Test the JavaScript ports
+        run: node --test "tests/*.test.mjs"
+      - name: Committed charts match the committed results
+        run: |
+          node tools/plot.mjs
+          node tools/hero.mjs
+          git diff --exit-code docs/assets
