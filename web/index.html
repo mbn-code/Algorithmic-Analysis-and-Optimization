@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Algorithmic Analysis and Optimization</title>
+    <meta
+      name="description"
+      content="Watch eight sorting algorithms race on the same array, step through them next to their C++ source, and see what they cost on real hardware."
+    />
+    <meta
+      property="og:title"
+      content="Sorting and searching, from textbook to fast"
+    />
+    <meta
+      property="og:description"
+      content="Eight sorting algorithms race on the same array, step by step next to their C++ source. Then the measurements: what each textbook-to-fast optimization actually buys on real hardware."
+    />
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:image"
+      content="https://mbn-code.github.io/Algorithmic-Analysis-and-Optimization/social-preview.png"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#0f2c4c" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=JetBrains+Mono:wght@400;600&display=swap"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <script type="module" src="js/main.js"></script>
+  </head>
+  <body>
+    <a class="skip" href="#race">Skip to the race</a>
+    <header class="top">
+      <a class="brand" href="#race">Algorithmic Analysis and Optimization</a>
+      <nav aria-label="Sections">
+        <a href="#race">Race</a>
+        <a href="#studio">Step through</a>
+        <a href="#search">Search</a>
+        <a href="#measured">Measurements</a>
+      </nav>
+      <a
+        class="star"
+        href="https://github.com/mbn-code/Algorithmic-Analysis-and-Optimization"
+      >
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+          <path
+            fill="currentColor"
+            d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.751.751 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"
+          />
+        </svg>
+        Star on GitHub
+        <span id="star-count" class="star-count" hidden></span>
+      </a>
+    </header>
+
+    <main>
+      <section id="race" class="sheet race" aria-labelledby="race-title">
+        <div class="hero-text">
+          <h1 id="race-title">Sorting and searching, from textbook to fast</h1>
+          <p class="lede">
+            Eight sorting algorithms get the same array. Every tick is one
+            comparison or one moved element, so the finishing order is the
+            amount of work each one does. What that work costs on a real
+            processor is measured further down.
+          </p>
+        </div>
+
+        <div class="controls" role="group" aria-label="Race settings">
+          <label
+            >Input
+            <select id="race-input"></select
+          ></label>
+          <label>
+            Elements
+            <input
+              id="race-size"
+              type="range"
+              min="32"
+              max="256"
+              step="16"
+              value="128"
+            />
+            <output id="race-size-out" for="race-size"></output>
+          </label>
+          <label
+            >Speed
+            <input id="race-speed" type="range" min="0" max="10" value="6"
+          /></label>
+          <button id="race-run" type="button" class="primary">Restart</button>
+        </div>
+
+        <div class="lanes" id="lanes"></div>
+        <template id="lane-template">
+          <article class="lane">
+            <header>
+              <h3 class="lane-name"></h3>
+              <span class="lane-place" hidden></span>
+            </header>
+            <canvas></canvas>
+            <footer>
+              <span class="lane-steps"></span>
+              <span class="lane-note"></span>
+            </footer>
+          </article>
+        </template>
+
+        <p class="aside">
+          Ticks count work, not time. On small arrays the tuned versions
+          sometimes do a little more work than the textbook ones and still
+          finish first on hardware, because their work is cheaper: no
+          allocations, fewer mispredicted branches, fewer cache misses. Try
+          sorted input, then the quicksort killer.
+        </p>
+      </section>
+
+      <section
+        id="studio"
+        class="sheet"
+        aria-labelledby="studio-title"
+        tabindex="-1"
+      >
+        <h2 id="studio-title">Step through one algorithm</h2>
+        <p class="intro">
+          Play it, drag the timeline, or step one operation at a time with the
+          arrow keys. The highlighted line is the C++ that operation comes from,
+          ported from <code>include/aao/sort.hpp</code>.
+        </p>
+        <div class="studio">
+          <div class="stage">
+            <div class="pickers">
+              <label
+                >Algorithm
+                <select id="studio-algorithm"></select
+              ></label>
+              <label
+                >Input
+                <select id="studio-input"></select
+              ></label>
+              <label>
+                Elements
+                <select id="studio-size">
+                  <option>16</option>
+                  <option selected>48</option>
+                  <option>96</option>
+                  <option>160</option>
+                </select>
+              </label>
+            </div>
+            <canvas id="studio-canvas"></canvas>
+            <p id="studio-narration" class="narration" aria-live="polite"></p>
+            <div class="transport">
+              <button id="studio-back" type="button">Back</button>
+              <button
+                id="studio-play"
+                type="button"
+                class="primary"
+                aria-pressed="false"
+              >
+                Play
+              </button>
+              <button id="studio-next" type="button">Step</button>
+              <input
+                id="studio-scrub"
+                type="range"
+                min="0"
+                value="0"
+                aria-label="Position in the run"
+              />
+            </div>
+            <div class="transport secondary">
+              <label
+                >Speed
+                <input
+                  id="studio-speed"
+                  type="range"
+                  min="0"
+                  max="10"
+                  value="5"
+              /></label>
+              <label class="check"
+                ><input id="studio-sound" type="checkbox" /> Sound</label
+              >
+              <span id="studio-counters" class="counters"></span>
+            </div>
+          </div>
+          <div class="source">
+            <pre><code id="studio-code"></code></pre>
+            <p id="studio-note" class="note"></p>
+          </div>
+        </div>
+      </section>
+
+      <section id="search" class="sheet" aria-labelledby="search-title">
+        <h2 id="search-title">Searching a sorted array</h2>
+        <p class="intro">
+          127 sorted keys, searched four ways. Click a bar to search for its
+          value. Shaded columns are the 64-byte cache lines a search touched: on
+          an array bigger than the cache, every new line is a trip to main
+          memory, roughly a hundred times slower than a comparison.
+        </p>
+        <div class="controls">
+          <div class="toggle" role="group" aria-label="Key distribution">
+            <button type="button" data-dist="uniform" aria-pressed="true">
+              Uniform keys
+            </button>
+            <button type="button" data-dist="skewed" aria-pressed="false">
+              Skewed keys
+            </button>
+          </div>
+          <button id="search-target" type="button">New target</button>
+          <span class="target"
+            >Looking for <output id="search-target-out"></output
+          ></span>
+        </div>
+        <div id="probe-rows" class="probe-rows"></div>
+        <template id="probe-template">
+          <div class="probe-row">
+            <div class="probe-label">
+              <h3 class="probe-name"></h3>
+              <p class="probe-stats"></p>
+              <p class="probe-caption"></p>
+            </div>
+            <canvas></canvas>
+          </div>
+        </template>
+      </section>
+
+      <section id="measured" class="sheet" aria-labelledby="measured-title">
+        <div class="measured-head">
+          <div>
+            <h2 id="measured-title">Measured on real hardware</h2>
+            <p class="intro">
+              Median time per element for sorting and per lookup for searching.
+              Both axes are logarithmic. Dashed lines are the textbook versions,
+              white lines the C++ standard library. Hover to read values; click
+              a legend entry to hide it.
+            </p>
+          </div>
+          <dl id="machine" class="title-block" hidden>
+            <div>
+              <dt>Processor</dt>
+              <dd data-cpu></dd>
+            </div>
+            <div>
+              <dt>Compiler</dt>
+              <dd data-compiler></dd>
+            </div>
+            <div>
+              <dt>Measured</dt>
+              <dd data-date></dd>
+            </div>
+          </dl>
+        </div>
+
+        <figure id="chart-sort" class="chart">
+          <figcaption><h3>Sorting 32-bit integers</h3></figcaption>
+          <div class="chart-tabs toggle" role="group" aria-label="Input"></div>
+          <div class="chart-legend"></div>
+          <div class="chart-frame">
+            <div class="chart-plot"></div>
+            <div class="chart-tip" hidden></div>
+          </div>
+          <details>
+            <summary>Show as a table</summary>
+            <div class="table-wrap"><table class="chart-table"></table></div>
+          </details>
+        </figure>
+
+        <figure id="chart-search" class="chart">
+          <figcaption>
+            <h3>Looking up 65,536 random keys in a sorted array</h3>
+          </figcaption>
+          <div class="chart-tabs toggle" role="group" aria-label="Keys"></div>
+          <div class="chart-legend"></div>
+          <div class="chart-frame">
+            <div class="chart-plot"></div>
+            <div class="chart-tip" hidden></div>
+          </div>
+          <details>
+            <summary>Show as a table</summary>
+            <div class="table-wrap"><table class="chart-table"></table></div>
+          </details>
+        </figure>
+      </section>
+
+      <section id="run" class="sheet" aria-labelledby="run-title">
+        <h2 id="run-title">Run it on your machine</h2>
+        <p class="intro">
+          The library is header-only C++20. The tests and the benchmark need a
+          compiler and CMake, nothing else.
+        </p>
+        <pre
+          class="shell"
+        ><code>git clone https://github.com/mbn-code/Algorithmic-Analysis-and-Optimization
+cd Algorithmic-Analysis-and-Optimization
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release
+ctest --test-dir build -C Release
+./build/aao_bench --out my-results</code></pre>
+        <p class="intro">
+          Your numbers will differ from these, and that is the interesting part.
+          Results from other processors are welcome as pull requests.
+        </p>
+      </section>
+    </main>
+
+    <footer class="bottom">
+      <p>
+        MIT licensed. Started as a Danish upper-secondary study project on
+        algorithm analysis, rebuilt as a measured optimization ladder.
+        <a
+          href="https://github.com/mbn-code/Algorithmic-Analysis-and-Optimization"
+          >Source on GitHub</a
+        >
+      </p>
+    </footer>
+  </body>
+</html>

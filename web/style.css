@@ -1,0 +1,739 @@
+/* Blueprint: a drafting sheet in Prussian blue, paper-white marks, and
+   highlighter colors for the operations being looked at. */
+
+:root {
+  color-scheme: dark;
+
+  --blueprint: #0f2c4c;
+  --blueprint-deep: #0b2340;
+  --paper: #e9f1f8;
+  --muted: #a9bfd4;
+  --rule: rgba(233, 241, 248, 0.2);
+  --grid-minor: rgba(190, 220, 255, 0.055);
+  --grid-major: rgba(190, 220, 255, 0.1);
+
+  /* Operations on bars */
+  --bar: #a9c0d7;
+  --range: rgba(233, 241, 248, 0.07);
+  --compare: #ffd166;
+  --move: #ff8a7a;
+  --read: #8ec5ff;
+  --done: #7fdccf;
+
+  /* Chart series, validated on --blueprint-deep (adjacent CVD dE >= 8.4) */
+  --c1: #d95926;
+  --c2: #199e70;
+  --c3: #c98500;
+  --c4: #d55181;
+  --c5: #9085e9;
+
+  --sans: "Archivo", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+  --gutter: clamp(16px, 4vw, 48px);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 72px;
+}
+
+body {
+  margin: 0;
+  background-color: var(--blueprint);
+  background-image:
+    linear-gradient(var(--grid-major) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-major) 1px, transparent 1px),
+    linear-gradient(var(--grid-minor) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-minor) 1px, transparent 1px);
+  background-size:
+    120px 120px,
+    120px 120px,
+    24px 24px,
+    24px 24px;
+  color: var(--paper);
+  font: 400 17px/1.55 var(--sans);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--paper);
+  text-underline-offset: 3px;
+}
+
+code,
+pre {
+  font-family: var(--mono);
+  font-size: 0.86em;
+  font-variant-ligatures: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--compare);
+  outline-offset: 2px;
+}
+
+.skip {
+  position: absolute;
+  left: -9999px;
+}
+.skip:focus {
+  left: 16px;
+  top: 12px;
+  z-index: 10;
+  background: var(--paper);
+  color: var(--blueprint);
+  padding: 6px 12px;
+}
+
+/* ---------- Header ---------- */
+
+.top {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  padding: 12px var(--gutter);
+  background: rgba(15, 44, 76, 0.92);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--rule);
+}
+
+.brand {
+  font-weight: 700;
+  font-stretch: 112%;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.top nav {
+  display: flex;
+  gap: 20px;
+  margin-right: auto;
+}
+
+.top nav a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 15px;
+}
+.top nav a:hover {
+  color: var(--paper);
+}
+
+.star {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border: 1px solid var(--paper);
+  border-radius: 3px;
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.star:hover {
+  background: var(--paper);
+  color: var(--blueprint);
+}
+.star-count {
+  padding-left: 8px;
+  border-left: 1px solid currentColor;
+}
+
+/* ---------- Sheets ---------- */
+
+main {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+
+.sheet {
+  padding: 72px 0 24px;
+}
+.sheet + .sheet {
+  border-top: 1px solid var(--rule);
+  margin-top: 48px;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 800;
+  line-height: 1.05;
+}
+
+h1 {
+  font-size: clamp(38px, 5.4vw, 74px);
+  font-stretch: 125%;
+  letter-spacing: -0.015em;
+  max-width: 15ch;
+  line-height: 0.96;
+}
+
+h2 {
+  font-size: clamp(28px, 3.6vw, 44px);
+  font-stretch: 118%;
+  letter-spacing: -0.01em;
+  margin-bottom: 14px;
+}
+
+h3 {
+  font-size: 17px;
+  font-weight: 700;
+  font-stretch: 105%;
+}
+
+.lede {
+  font-size: clamp(18px, 1.6vw, 21px);
+  max-width: 58ch;
+  color: var(--paper);
+  margin: 24px 0 0;
+}
+
+.intro,
+.aside {
+  max-width: 68ch;
+  color: var(--muted);
+  margin: 0 0 24px;
+}
+
+.aside {
+  margin-top: 20px;
+  font-size: 15px;
+}
+
+.hero-text {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 32px 64px;
+  align-items: end;
+  margin-bottom: 40px;
+}
+
+/* ---------- Controls ---------- */
+
+.controls,
+.pickers,
+.transport {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 24px;
+  margin-bottom: 20px;
+}
+
+label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+select,
+button {
+  font: inherit;
+  font-size: 15px;
+  color: var(--paper);
+  background: var(--blueprint-deep);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 6px 12px;
+}
+
+select {
+  padding-right: 8px;
+}
+
+button {
+  cursor: pointer;
+}
+button:hover,
+select:hover {
+  border-color: var(--paper);
+}
+button.primary {
+  background: var(--paper);
+  color: var(--blueprint);
+  border-color: var(--paper);
+  font-weight: 600;
+}
+button.primary:hover {
+  background: #fff;
+}
+
+input[type="range"] {
+  accent-color: var(--compare);
+  width: 140px;
+}
+input[type="checkbox"] {
+  accent-color: var(--compare);
+  width: 16px;
+  height: 16px;
+}
+
+output {
+  min-width: 3ch;
+  color: var(--paper);
+}
+
+.toggle {
+  display: inline-flex;
+  flex-wrap: wrap;
+}
+.toggle button {
+  border-radius: 0;
+  margin-left: -1px;
+}
+.toggle button:first-child {
+  border-radius: 3px 0 0 3px;
+  margin-left: 0;
+}
+.toggle button:last-child {
+  border-radius: 0 3px 3px 0;
+}
+.toggle button[aria-pressed="true"] {
+  background: var(--paper);
+  color: var(--blueprint);
+  border-color: var(--paper);
+  position: relative;
+}
+
+/* ---------- Race ---------- */
+
+.lanes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.lane {
+  display: grid;
+  grid-template-rows: auto 132px auto;
+  background: var(--blueprint-deep);
+  border: 1px solid var(--rule);
+  padding: 12px 12px 10px;
+}
+
+.lane header,
+.lane footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.lane header {
+  margin-bottom: 10px;
+  min-height: 26px; /* room for the place badge, so canvases line up */
+}
+
+.lane canvas,
+.stage canvas,
+.probe-row canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.lane footer {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.lane-steps {
+  white-space: nowrap;
+  color: var(--paper);
+}
+
+.lane-note {
+  text-align: right;
+}
+
+.lane-place {
+  font-weight: 800;
+  font-stretch: 120%;
+  color: var(--done);
+}
+
+.lane.finished {
+  border-color: rgba(127, 220, 207, 0.45);
+}
+
+/* ---------- Studio ---------- */
+
+.studio {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.stage,
+.source {
+  background: var(--blueprint-deep);
+  border: 1px solid var(--rule);
+  padding: 16px;
+}
+
+.stage canvas {
+  height: 280px;
+  margin-bottom: 12px;
+}
+
+.narration {
+  min-height: 1.6em;
+  margin: 0 0 12px;
+  font-family: var(--mono);
+  font-size: 14px;
+}
+
+.transport {
+  margin-bottom: 12px;
+}
+.transport #studio-scrub {
+  flex: 1 1 160px;
+  width: auto;
+}
+.transport.secondary {
+  margin-bottom: 0;
+}
+
+.check {
+  gap: 6px;
+}
+
+.counters {
+  font-size: 14px;
+  color: var(--muted);
+  margin-left: auto;
+}
+
+.source pre {
+  margin: 0;
+  overflow-x: auto;
+  line-height: 1.6;
+}
+
+.source code {
+  display: block;
+  font-size: 13px;
+}
+
+.source .line {
+  display: block;
+  padding: 0 8px;
+  white-space: pre;
+  color: var(--muted);
+  border-left: 2px solid transparent;
+}
+
+.source .line.active {
+  color: var(--blueprint);
+  background: var(--compare);
+  border-left-color: var(--compare);
+}
+
+.note {
+  margin: 14px 0 0;
+  font-size: 15px;
+  color: var(--muted);
+}
+
+/* ---------- Search ---------- */
+
+.target {
+  color: var(--muted);
+  font-size: 15px;
+}
+.target output {
+  font-weight: 700;
+}
+
+.probe-rows {
+  display: grid;
+  gap: 12px;
+}
+
+.probe-row {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 20px;
+  background: var(--blueprint-deep);
+  border: 1px solid var(--rule);
+  padding: 14px 16px;
+}
+
+.probe-row canvas {
+  height: 110px;
+}
+
+.probe-label p {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.probe-label .probe-stats {
+  color: var(--compare);
+  font-weight: 600;
+}
+.probe-label .probe-stats.bad {
+  color: var(--move);
+}
+
+/* ---------- Measurements ---------- */
+
+.measured-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+
+.title-block {
+  display: grid;
+  margin: 8px 0 24px;
+  border: 1px solid var(--rule);
+  min-width: 280px;
+  font-size: 14px;
+}
+.title-block div {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+}
+.title-block div + div {
+  border-top: 1px solid var(--rule);
+}
+.title-block dt {
+  padding: 6px 10px;
+  color: var(--muted);
+  border-right: 1px solid var(--rule);
+}
+.title-block dd {
+  margin: 0;
+  padding: 6px 10px;
+}
+
+.chart {
+  margin: 0 0 48px;
+  background: var(--blueprint-deep);
+  border: 1px solid var(--rule);
+  padding: 20px;
+}
+
+.chart figcaption {
+  margin-bottom: 14px;
+}
+
+.chart-tabs {
+  margin-bottom: 14px;
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  margin-bottom: 8px;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 10px 3px 6px;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  background: transparent;
+}
+.legend-item[aria-pressed="false"] {
+  opacity: 0.4;
+  text-decoration: line-through;
+}
+
+.chart-frame {
+  position: relative;
+}
+
+.chart-plot svg {
+  display: block;
+  overflow: visible;
+}
+
+.chart-plot .grid line {
+  stroke: var(--rule);
+  stroke-width: 1;
+  opacity: 0.6;
+}
+.chart-plot text {
+  fill: var(--muted);
+  font: 12px var(--sans);
+  font-variant-numeric: tabular-nums;
+}
+.chart-plot .axis {
+  stroke: var(--muted);
+}
+.chart-plot .cache line {
+  stroke: var(--paper);
+  stroke-opacity: 0.35;
+}
+.chart-plot .cache text {
+  fill: var(--paper);
+  font-size: 11.5px;
+}
+.chart-plot .crosshair {
+  stroke: var(--paper);
+  stroke-opacity: 0.5;
+}
+
+.chart-tip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--blueprint);
+  border: 1px solid var(--rule);
+  padding: 8px 10px;
+  font-size: 13px;
+  min-width: 240px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+.chart-tip strong {
+  display: block;
+  margin-bottom: 4px;
+}
+.chart-tip div {
+  display: grid;
+  grid-template-columns: 10px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.tip-swatch {
+  width: 10px;
+  height: 3px;
+}
+.tip-value {
+  color: var(--paper);
+}
+
+details {
+  margin-top: 12px;
+  font-size: 14px;
+  color: var(--muted);
+}
+summary {
+  cursor: pointer;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  margin-top: 10px;
+}
+
+.chart-table {
+  border-collapse: collapse;
+  font-size: 12.5px;
+  color: var(--paper);
+}
+.chart-table caption {
+  text-align: left;
+  color: var(--muted);
+  padding-bottom: 6px;
+}
+.chart-table th,
+.chart-table td {
+  border: 1px solid var(--rule);
+  padding: 4px 8px;
+  text-align: right;
+  white-space: nowrap;
+}
+.chart-table th[scope="row"] {
+  text-align: left;
+  font-family: var(--mono);
+  font-weight: 400;
+}
+
+/* ---------- Run ---------- */
+
+.shell {
+  background: var(--blueprint-deep);
+  border: 1px solid var(--rule);
+  padding: 16px 20px;
+  overflow-x: auto;
+  margin: 0 0 20px;
+  line-height: 1.7;
+  max-width: 760px;
+}
+
+.bottom {
+  border-top: 1px solid var(--rule);
+  padding: 28px var(--gutter) 48px;
+  color: var(--muted);
+  font-size: 14px;
+  max-width: 1320px;
+  margin: 48px auto 0;
+}
+
+/* ---------- Small screens ---------- */
+
+@media (max-width: 900px) {
+  .hero-text,
+  .studio {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .probe-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+  .top nav {
+    display: none;
+  }
+  .brand {
+    margin-right: auto;
+  }
+}
+
+@media (max-width: 520px) {
+  .brand {
+    font-size: 15px;
+    white-space: normal;
+  }
+  .lanes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .lane {
+    grid-template-rows: auto 104px auto;
+  }
+  .lane-note {
+    display: none;
+  }
+  .stage canvas {
+    height: 200px;
+  }
+  .counters {
+    margin-left: 0;
+  }
+  .chart {
+    padding: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
