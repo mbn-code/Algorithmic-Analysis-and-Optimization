@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: If you use this software or its measurements, please cite it as below.
+title: "Algorithmic Analysis and Optimization: sorting and searching, from textbook to fast"
+type: software
+authors:
+  - family-names: Norengaard
+    given-names: Malthe Bang
+version: 2.0.0
+license: MIT
+repository-code: https://github.com/mbn-code/Algorithmic-Analysis-and-Optimization
+url: https://mbn-code.github.io/Algorithmic-Analysis-and-Optimization/
+keywords:
+  - algorithms
+  - sorting
+  - searching
+  - benchmarking
+  - algorithm analysis
+  - performance

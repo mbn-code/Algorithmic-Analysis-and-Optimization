@@ -1,237 +1,209 @@
-# Algorithm Analysis and Optimization
+# Algorithmic Analysis and Optimization
 
-[![GitHub Issues](https://img.shields.io/github/issues/mbn-code/Algoritmeanalyse-og-optimering)](https://github.com/mbn-code/Algoritmeanalyse-og-optimering/issues)
-[![GitHub Stars](https://img.shields.io/github/stars/mbn-code/Algoritmeanalyse-og-optimering)](https://github.com/mbn-code/Algoritmeanalyse-og-optimering/stargazers)
-[![GitHub Forks](https://img.shields.io/github/forks/mbn-code/Algoritmeanalyse-og-optimering)](https://github.com/mbn-code/Algoritmeanalyse-og-optimering/network/members)
-[![License](https://img.shields.io/github/license/mbn-code/Algoritmeanalyse-og-optimering)](https://github.com/mbn-code/Algoritmeanalyse-og-optimering/blob/main/LICENSE)
+Sorting and searching, from the textbook version to the fast one, with every step measured.
 
-This project focuses on algorithm optimization, analysis, and practical implementations using sorting and searching algorithms. It includes benchmarking and visualization tools to analyze the performance of different algorithms in various scenarios.
+[![CI](https://github.com/mbn-code/Algorithmic-Analysis-and-Optimization/actions/workflows/ci.yml/badge.svg)](https://github.com/mbn-code/Algorithmic-Analysis-and-Optimization/actions/workflows/ci.yml)
 
-## Table of Contents
+![Six sorting algorithms racing on the same array](docs/assets/race.svg)
 
-- [Introduction](#introduction)
-- [Features](#features)
-- [Installation](#installation)
-- [macOS-Specific-installation](#macos-installation)
-- [Usage](#usage)
-  - [Running Benchmarks](#running-benchmarks)
-  - [Visualizing Sorting Algorithms](#visualizing-sorting-algorithms)
-  - [Viewing Profiling Data](#viewing-profiling-data)
-- [Detailed Analysis](#detailed-analysis)
-  - [Sorting Algorithms](#sorting-algorithms)
-  - [Searching Algorithms](#searching-algorithms)
-- [Results](#results)
-- [Conclusion](#conclusion)
-- [Project Overview](#project-overview)
-- [Problem Statement](#problem-statement)
-- [Questions](#questions)
-- [Contributing](#contributing)
-- [License](#license)
+**[Open the interactive visualizer](https://mbn-code.github.io/Algorithmic-Analysis-and-Optimization/)**: race eight
+sorting algorithms, step through each one next to its C++ source, watch where a search looks in memory, and explore
+the benchmark results.
 
-## Introduction
+This repository contains:
 
-The aim of this project is to investigate commonly used methods for optimizing algorithms and how these methods are classified. It delves into how mathematics is used to analyze algorithms and their performance, specifically focusing on Merge Sort, Quick Sort, and Binary Search algorithms.
+- **A header-only C++20 library** ([`include/aao`](include/aao)) with each algorithm in two versions: the one from
+  the textbook, and what it becomes after measurement-driven optimization. Eight sorts and five searches, all
+  generic over iterators and comparators.
+- **A benchmark** ([`bench`](bench)) that checks every result against the standard library, counts comparisons, and
+  measures six input shapes from 1,000 to 64 million elements. It writes CSV, and optionally a trace you can open in
+  Perfetto.
+- **An analysis** ([`docs/analysis.md`](docs/analysis.md)) that puts the textbook math next to the measurements. The
+  comparison counts match the formulas, most to within 0.1%; the running times are a different story.
+- **The visualizer** ([`web`](web)) and a native results viewer built on raylib ([`viewer`](viewer)).
 
-The project stems from the need to understand how algorithm analysis and optimization can save time and computational resources. Algorithms are fundamental in solving problems efficiently, and optimizing them is crucial in practical applications like search engines, data processing, and more.
+## What optimization bought
 
-Relevant resources for learning about algorithm optimization include:
+Measured on an AMD Ryzen 7 9800X3D with GCC 15.2 at `-O3`, 32-bit integer keys. Your numbers will differ; the
+[benchmark](#run-it) takes three minutes.
 
-- [GeeksforGeeks - Analysis of Algorithms (Theta Notation)](https://www.geeksforgeeks.org/analysis-of-algorithms-big-theta-notation/)
-- [Wikiwand - Time Complexity](https://www.wikiwand.com/en/articles/Time%20complexity)
-- [Khan Academy - Analysis of Quick Sort](https://www.khanacademy.org/computing/computer-science/algorithms/quick-sort/a/analysis-of-quicksort)
+| Change                                                                                        | Input                                         |           Before |          After |
+| --------------------------------------------------------------------------------------------- | --------------------------------------------- | ---------------: | -------------: |
+| Merge sort: one buffer instead of two allocations per merge, insertion sort below 32 elements | 1M random                                     |   107 ns/element |  53 ns/element |
+| Merge sort: skip merging two runs that are already in order                                   | 1M sorted                                     |    54 ns/element | 0.9 ns/element |
+| Quicksort: median-of-three pivot instead of the last element                                  | 32K sorted                                    | 4,398 ns/element | 2.4 ns/element |
+| Introsort: fall back to heap sort when recursion gets too deep                                | 32K [quicksort killer](#the-quicksort-killer) | 1,647 ns/element |  45 ns/element |
+| Radix sort instead of `std::sort`: no comparisons at all                                      | 1M random                                     |    47 ns/element | 3.4 ns/element |
+| Branchless binary search instead of `std::lower_bound`                                        | 1M keys                                       |    117 ns/lookup |   49 ns/lookup |
+| Eytzinger layout instead of a sorted array                                                    | 64M keys (256 MB)                             |    397 ns/lookup |   56 ns/lookup |
 
-## Features
+![Time per element to sort one million random integers](docs/assets/sort-1m.svg)
 
-- **Sorting Algorithms Implementation**: C++ implementations of Merge Sort and Quick Sort with different pivot strategies.
-- **Searching Algorithm Implementation**: C++ implementation of Binary Search.
-- **Benchmarking Tool**: Measures the performance of sorting and searching algorithms under Best, Average, and Worst-case scenarios.
-- **Visualization**: Python script using `matplotlib` to animate sorting processes and highlight code.
-- **Profiling**: C++ code profiles algorithm performance and outputs the results to JSON files compatible with Chrome Tracing.
+Searching is a story about memory more than comparisons. Every search below makes about the same number of probes;
+the curves bend where the array outgrows each cache level.
 
-Learn more about sorting and searching algorithm concepts at:
+![Time per lookup as the array grows, with cache sizes marked](docs/assets/search-scaling.svg)
 
-- [GeeksforGeeks - Binary Search Algorithm](https://www.geeksforgeeks.org/binary-search/)
-- [W3Schools - Quick Sort](https://www.w3schools.com/dsa/dsa_algo_quicksort.php)
+### The quicksort killer
 
-## Installation
+Every deterministic quicksort has inputs that make it quadratic. Last-element pivots fail on sorted input. Median of
+three survives that, but not [McIlroy's adversary](https://www.cs.dartmouth.edu/~doug/mdmspe.pdf), which decides the
+input's values during the sort so that every pivot lands near an extreme. The benchmark builds that input for
+`aao::quick_sort`; introsort, the strategy behind `std::sort`, caps the damage.
 
-### Prerequisites
+![Two inputs that make quicksort quadratic](docs/assets/quadratic-traps.svg)
 
-- **C++ Compiler**: Compatible with C++11 or higher (e.g., GCC, Clang, MSVC).
-- **Python 3.x**: Along with the following packages:
-  - `numpy`
-  - `matplotlib`
+## What the measurements taught
 
-To understand benchmarking better, check:
+**Fewest comparisons is not fastest.** The textbook merge sort makes 19.6 million comparisons on 1M random keys,
+within 1% of the theoretical minimum for any comparison sort. It is also the slowest comparison sort measured. The
+tuned version makes 26% more comparisons and takes half the time: allocation, branch mispredictions and cache misses
+cost more than comparisons do.
 
-- [The Cherno - Benchmarking in C++](https://www.youtube.com/watch?v=YG4jexlSAjc)
+**The branch predictor learns your benchmark.** Sorting the same 1,000-element array thousands of times lets the CPU
+memorize its comparison outcomes. `std::sort` measured 2.3 ns per element that way, and 22.7 on fresh arrays. The
+benchmark now rotates through 16 inputs at small sizes.
 
-### Setup Steps
+**Radix sort has a cache trap.** On the keys 0 to 2²⁰−1, already sorted, it is four times slower than on random keys.
+Every bucket is exactly the same size, so 256 write positions advance in lockstep exactly 16 KB apart and collide in
+the same cache sets. Sorted keys with random gaps run at full speed.
 
-1. **Clone the Repository**
+**Interpolation search is a gamble.** On uniformly distributed keys it needs O(log log n) probes: 9 ns per lookup at
+64M keys, against 397 for `std::lower_bound`. On skewed keys the textbook version degrades to O(n): 23 µs per lookup
+at only 64K keys. The guarded version alternates guesses with halving steps, which bounds the damage.
 
-   ```bash
-   git clone https://github.com/mbn-code/Algoritmeanalyse-og-optimering.git
-   ```
+**Version 1 of this project measured the wrong things.** It reported quicksort as 7x slower than merge sort, because
+its quicksort created a new `std::random_device` and `std::mt19937` on every partition call: creating them once makes
+the same code 35x faster (629 to 18 µs for 1,000 elements). Its binary search benchmark timed `std::cout`. Its
+interpolation search overflowed on wide key ranges and divided by zero on runs of equal keys; the tests in
+[`tests/tests.cpp`](tests/tests.cpp) cover both.
 
-2. **Build the C++ Project**
-   - **On macOS/Linux (using Makefile)**
+## Run it
 
-     ```bash
-     cd Algoritmeanalyse-og-optimering
-     make
-     ```
+Requirements: CMake 3.20+ and a C++20 compiler. CI builds and tests with GCC and Clang on Linux, Apple Clang on macOS,
+and MSVC on Windows.
 
-   - **On Windows (using Visual Studio)**
-     - Open the solution file in Visual Studio.
-     - Build the project from the **Build** menu.
-
-3. **Install Python Dependencies**
-
-   ```bash
-   pip install numpy matplotlib
-   ```
-
-## macOS Installation
-
-This section provides detailed instructions for setting up and compiling the project specifically on macOS.
-
-### Prerequisites for macOS
-
-Before building the project, ensure you have the following installed:
-
-1. **Xcode Command Line Tools** (includes GCC/Clang compiler)
-
-   ```bash
-   xcode-select --install
-   ```
-
-2. **Homebrew** (package manager for macOS)
-
-   ```bash
-   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-   ```
-
-3. **raylib** (graphics library)
-
-   ```bash
-   brew install raylib
-   ```
-
-4. **pkg-config** (required to find raylib packages)
-
-   ```bash
-   brew install pkg-config
-   ```
-
-5. **Bear** (to generate compile_commands.json)
-
-   ```bash
-   brew install bear
-   ```
-
-6. **Python 3.x** with required packages
-   ```bash
-   pip install numpy matplotlib
-   ```
-
-### Compiling on macOS
-
-Navigate to the project directory and run the following compilation command:
-
-```bash
-cd /Users/mbn/Documents/GitHub/Algorithmic-Analysis-and-Optimization/Algoritmeanalyse-og-optimering && \
-g++ -std=c++17 -o Algoritmeanalyse-og-optimering *.cpp \
-  -I. \
-  $(pkg-config --cflags --libs raylib) \
-  -lm -lpthread; ./Algoritmeanalyse-og-optimering
+```sh
+git clone https://github.com/mbn-code/Algorithmic-Analysis-and-Optimization
+cd Algorithmic-Analysis-and-Optimization
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release
+ctest --test-dir build -C Release
+./build/aao_bench --out my-results
 ```
 
-**Explanation**:
+With Visual Studio the binaries land in `build/Release/`.
 
-- `-std=c++17`: Uses the C++17 standard
-- `-o Algoritmeanalyse-og-optimering`: Names the output executable
-- `*.cpp`: Compiles all C++ source files
-- `-I.`: Includes the current directory for headers
-- `$(pkg-config --cflags --libs raylib)`: Automatically includes raylib compilation flags and libraries
-- `-lm`: Links the math library
-- `-lpthread`: Links the pthread library for threading support
+| `aao_bench` option | Effect                                                                           |
+| ------------------ | -------------------------------------------------------------------------------- |
+| `sort`, `search`   | Run one suite instead of both                                                    |
+| `--quick`          | Small sizes and short measurements, about 10 seconds                             |
+| `--out DIR`        | Where to write `sort.csv`, `search.csv` and `meta.json` (default `results`)      |
+| `--max-n N`        | Largest input size                                                               |
+| `--filter TEXT`    | Only algorithms whose name contains `TEXT`                                       |
+| `--trace FILE`     | Also write a Chrome trace; open it in [ui.perfetto.dev](https://ui.perfetto.dev) |
 
-### Generating compile_commands.json on macOS
+To browse results in a native window, build the viewer (CMake downloads raylib 5.5):
 
-To generate the `compile_commands.json` file needed for code analysis tools and IDE language servers, use the `bear` command:
-
-```bash
-cd /Users/mbn/Documents/GitHub/Algorithmic-Analysis-and-Optimization/Algoritmeanalyse-og-optimering && \
-bear -- g++ -std=c++17 -o Algoritmeanalyse-og-optimering *.cpp \
-  -I. \
-  $(pkg-config --cflags --libs raylib) \
-  -lm -lpthread
+```sh
+cmake -B build -DAAO_BUILD_VIEWER=ON
+cmake --build build --config Release
+./build/aao_viewer my-results
 ```
 
-This command wraps your compilation command with `bear --` and generates a `compile_commands.json` file in the current directory. This file is essential for:
+![The raylib results viewer](docs/assets/viewer.png)
 
-- Code intelligence and autocomplete in IDEs (VS Code, CLion, etc.)
-- Static analysis tools
-- Language server protocol (LSP) support
+To run the visualizer locally, serve the repository root with any static server, for example
+`python -m http.server`, and open `http://localhost:8000/web/`.
 
-### Running the Application
+## Use the library
 
-After successful compilation, the executable will automatically run. If you only want to compile without running:
+Copy `include/aao` into your project, or pull it in with CMake:
 
-```bash
-cd /Users/mbn/Documents/GitHub/Algorithmic-Analysis-and-Optimization/Algoritmeanalyse-og-optimering && \
-g++ -std=c++17 -o Algoritmeanalyse-og-optimering *.cpp \
-  -I. \
-  $(pkg-config --cflags --libs raylib) \
-  -lm -lpthread
+```cmake
+include(FetchContent)
+FetchContent_Declare(aao GIT_REPOSITORY https://github.com/mbn-code/Algorithmic-Analysis-and-Optimization GIT_TAG main)
+FetchContent_MakeAvailable(aao)
+target_link_libraries(your_target PRIVATE aao::aao)
 ```
 
-Then run the executable separately:
+```cpp
+#include <aao/search.hpp>
+#include <aao/sort.hpp>
 
-```bash
-./Algoritmeanalyse-og-optimering
+std::vector<int> v = load_numbers();
+
+aao::intro_sort(v.begin(), v.end());                      // any random-access range
+aao::merge_sort(v.begin(), v.end(), std::greater<>{});    // any comparator, stable
+aao::radix_sort(v.begin(), v.end());                      // integer keys only
+
+auto it = aao::branchless_lower_bound(v.begin(), v.end(), 42);
+
+aao::eytzinger_index<int> index(v.begin(), v.end());      // build once, O(n)
+const int* hit = index.lower_bound(42);                    // nullptr if every key is < 42
 ```
 
-### Troubleshooting
+| Function                         | Best    | Average                  | Worst   | Extra space            | Stable |
+| -------------------------------- | ------- | ------------------------ | ------- | ---------------------- | ------ |
+| `insertion_sort`                 | n       | n²                       | n²      | 1                      | yes    |
+| `textbook::merge_sort`           | n log n | n log n                  | n log n | n, allocated per merge | yes    |
+| `merge_sort`                     | n       | n log n                  | n log n | n/2, allocated once    | yes    |
+| `textbook::quick_sort`           | n log n | n log n                  | n²      | n (recursion)          | no     |
+| `quick_sort`                     | n log n | n log n                  | n²      | log n                  | no     |
+| `intro_sort`                     | n log n | n log n                  | n log n | log n                  | no     |
+| `heap_sort`                      | n log n | n log n                  | n log n | 1                      | no     |
+| `radix_sort`                     | n·w     | n·w                      | n·w     | n                      | yes    |
+| `textbook::binary_search`        | 1       | log n                    | log n   | 1                      |        |
+| `branchless_lower_bound`         | log n   | log n                    | log n   | 1                      |        |
+| `textbook::interpolation_search` | 1       | log log n (uniform keys) | n       | 1                      |        |
+| `interpolation_search`           | 1       | log log n (uniform keys) | log n   | 1                      |        |
+| `eytzinger_index::lower_bound`   | log n   | log n                    | log n   | n (the index)          |        |
 
-- **"raylib not found"**: Ensure raylib is installed (`brew install raylib`) and pkg-config can find it (`pkg-config --cflags --libs raylib`).
-- **Compilation errors**: Verify you have Xcode Command Line Tools installed (`xcode-select --install`).
-- **Permission denied**: Make sure the executable has execute permissions (`chmod +x Algoritmeanalyse-og-optimering`).
+Search functions return the first element not less than the key, like `std::lower_bound`, except
+`textbook::binary_search`, which returns any matching element or `last`.
 
-## Detailed Analysis
+## How the benchmark measures
 
-### Sorting Algorithms
+- Inputs are generated deterministically with SplitMix64, so every compiler and platform sorts the same arrays.
+- Each measurement runs once as a warm-up, then repeats until it has used 0.2 s and at least 5 repetitions. The
+  reported number is the median.
+- Small sorting inputs rotate through 16 different arrays, so the branch predictor cannot memorize one.
+- Every sort's output is compared against `std::sort`, and every search's results are checksummed; a wrong answer
+  stops the run.
+- Comparisons are counted in a separate, untimed run with a counting comparator.
+- Searches measure the throughput of 65,536 independent lookups of keys that exist in the array.
+- Quadratic algorithms stop at 32K elements, and the quicksort killer is generated up to 32K (building it costs a
+  quadratic sort).
 
-- **Quick Sort**: An efficient, in-place sorting algorithm using the divide-and-conquer approach. It selects a 'pivot' element and partitions the array around the pivot. While it has an average-case time complexity of O(n log n), the worst-case performance is O(n²).
+The committed [`results`](results) come from one desktop machine with frequency boost enabled; treat small
+differences as noise. Results from other processors are welcome as pull requests.
 
-  For further reading, refer to:
-  - [CS Dojo - Time Complexity Introduction](https://www.youtube.com/watch?v=D6xkbGLQesk)
-  - [GeeksforGeeks - Quick Sort Complexity](https://www.geeksforgeeks.org/time-and-space-complexity-analysis-of-quick-sort/)
+## Repository layout
 
-- **Merge Sort**: A stable, comparison-based sorting algorithm that consistently performs at O(n log n) time complexity for all cases. It divides the array into halves, sorts them recursively, and then merges the sorted halves.
+```
+include/aao/   the library: sort.hpp, search.hpp
+bench/         benchmark runner, input generators, trace writer
+tests/         C++ tests (ctest) and tests for the JavaScript ports (node --test)
+results/       the reference run: sort.csv, search.csv, meta.json
+web/           the interactive visualizer, deployed to GitHub Pages
+viewer/        native results viewer (raylib)
+tools/         regenerate the README charts and animation from results/
+docs/          analysis.md, chart assets, and the original 2024 study project
+```
 
-  Additional resource:
-  - [Omegapy - Merge Sort Analysis](https://www.alexomegapy.com/post/merge-sort-divide-and-conquer-for-large-datasets)
+## Background
 
-### Searching Algorithms
+This began in 2024 as a study project (SOP) in Mathematics A and Programming B at a Danish HTX upper-secondary
+school, asking how mathematical analysis of algorithms relates to their real performance. The original report, Maple
+derivations and diagrams are in [`docs/sop`](docs/sop). Version 2 rebuilds the code around that question: every
+algorithm has a tested textbook and optimized form, the benchmark avoids the measurement mistakes of version 1, and the
+analysis is checked against the data.
 
-- **Binary Search**: An efficient algorithm for finding an item in a sorted array with a time complexity of O(log n).
+## Contributing
 
-  Learn more about Binary Search:
-  - [GeeksforGeeks - Binary Search](https://www.geeksforgeeks.org/binary-search/)
+Issues and pull requests are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md). Benchmark results from other machines
+are especially useful.
 
-## Results
+## License
 
-Benchmarking results and profiling data are available for both sorting and searching algorithms.
-
-- **Sorting Results**: [View Sorting Results](Algoritmeanalyse-og-optimering/results_sorting.json)
-- **Searching Results**: [View Searching Results](Algoritmeanalyse-og-optimering/results_searching.json)
-
-For detailed benchmarks, check:
-
-- [HPC Wiki - Micro Benchmarking](https://hpc-wiki.info/hpc/Micro_benchmarking)
-
-## Conclusion
-
-In this project, we explored algorithm analysis and optimization, focusing on sorting and searching algorithms. By implementing and benchmarking Quick Sort, Merge Sort, and Binary Search, we gained insights into their performance characteristics in various scenarios. Visualizing the algorithms helped in understanding their behavior and the importance of choosing the right algorithm for a specific problem to optimize time and space complexity.
+[MIT](LICENSE)
